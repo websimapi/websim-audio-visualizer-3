@@ -1,0 +1,48 @@
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audio Visualizer</title>
+  <link rel="stylesheet" href="styles.css">
+  <script async src="https://unpkg.com/es-module-shims@1.8.0/dist/es-module-shims.js"></script>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.156.1/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.156.1/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div class="container">
+    <div class="controls">
+      <button id="startBtn">Select Audio Source</button>
+      <select id="visualizerSelect">
+        <option value="bars">Classic Bars</option>
+        <option value="circular">Circular</option>
+        <option value="wave">Wave Form</option>
+        <option value="particles">Particles</option>
+        <option value="cubes">3D Cubes</option>
+        <option value="sphere">3D Sphere</option>
+        <option value="terrain">3D Terrain</option>
+      </select>
+      <div id="status">Select an audio source to begin</div>
+    </div>
+    
+    <div id="visualizer-container">
+      <canvas id="canvas2d"></canvas>
+      <div id="canvas3d"></div>
+    </div>
+
+    <button id="fullscreenBtn" title="Toggle Fullscreen">
+      <svg viewBox="0 0 24 24">
+        <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+      </svg>
+    </button>
+  </div>
+
+  <script type="module" src="visualizer.js"></script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"4c6229722a6346bc8eb5cb0e5eae5d41","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
