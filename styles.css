@@ -82,6 +82,11 @@ select:hover {
   left: 0;
   width: 100%;
   height: 100%;
+  pointer-events: none; /* Allow clicking through to controls */
+}
+
+#canvas3d {
+  pointer-events: auto; /* Enable orbit controls on 3D canvas */
 }
 
 #fullscreenBtn {

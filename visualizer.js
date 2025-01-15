@@ -25,6 +25,7 @@ class AudioVisualizer {
 
     // Three.js setup
     this.initThreeJS();
+    this.handleResize(); // Call resize immediately after init
 
     // Event listeners
     this.setupEventListeners();
@@ -40,16 +41,24 @@ class AudioVisualizer {
     
     // Camera
     this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    this.camera.position.z = 5;
+    this.camera.position.z = 15;
+    this.camera.position.y = 5;
 
     // Renderer
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.renderer = new THREE.WebGLRenderer({ 
+      canvas: this.canvas3d.querySelector('canvas'),
+      antialias: true,
+      alpha: true 
+    });
+    this.renderer.setPixelRatio(window.devicePixelRatio);
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.canvas3d.appendChild(this.renderer.domElement);
+    this.renderer.setClearColor(0x000000, 0);
 
     // Controls
     this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
     this.orbitControls.enableDamping = true;
+    this.orbitControls.dampingFactor = 0.05;
+    this.orbitControls.enableZoom = true;
 
     // Lights
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
@@ -59,7 +68,7 @@ class AudioVisualizer {
     directionalLight.position.set(5, 5, 5);
     this.scene.add(directionalLight);
 
-    // 3D Objects
+    // Initialize 3D objects
     this.initializeCubes();
     this.initializeSphere();
     this.initializeTerrain();
@@ -148,16 +157,26 @@ class AudioVisualizer {
     this.analyser.getByteFrequencyData(this.dataArray);
     const visualizerType = this.visualizerSelect.value;
 
-    // Hide/show appropriate canvas
-    this.canvas2d.style.display = visualizerType.startsWith('3') ? 'none' : 'block';
-    this.canvas3d.style.display = visualizerType.startsWith('3') ? 'block' : 'none';
-
-    // Clear canvases
-    if (visualizerType.startsWith('3')) {
+    // Clear previous frame
+    if (visualizerType === 'cubes' || visualizerType === 'sphere' || visualizerType === 'terrain') {
+      this.canvas2d.style.display = 'none';
+      this.canvas3d.style.display = 'block';
       this.scene.clear();
+      this.scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+      directionalLight.position.set(5, 5, 5);
+      this.scene.add(directionalLight);
+      this.orbitControls.update();
     } else {
+      this.canvas2d.style.display = 'block';
+      this.canvas3d.style.display = 'none';
       this.ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
       this.ctx.fillRect(0, 0, this.canvas2d.width, this.canvas2d.height);
+    }
+
+    // Update orbit controls if using 3D visualization
+    if (visualizerType === 'cubes' || visualizerType === 'sphere' || visualizerType === 'terrain') {
+      this.orbitControls.update();
     }
 
     // Render selected visualizer
@@ -169,6 +188,11 @@ class AudioVisualizer {
       case 'cubes': this.renderCubes(); break;
       case 'sphere': this.renderSphere(); break;
       case 'terrain': this.renderTerrain(); break;
+    }
+
+    // Make sure to render the 3D scene if needed
+    if (visualizerType === 'cubes' || visualizerType === 'sphere' || visualizerType === 'terrain') {
+      this.renderer.render(this.scene, this.camera);
     }
   }
 
@@ -265,12 +289,23 @@ class AudioVisualizer {
   }
 
   renderCubes() {
+    // Remove any existing meshes
+    this.scene.clear();
+    
+    // Add lights back
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(5, 5, 5);
+    this.scene.add(ambientLight);
+    this.scene.add(directionalLight);
+
+    // Add and update cubes
     this.cubes.forEach((cube, i) => {
       const value = this.dataArray[i] / 128.0;
-      cube.scale.y = value * 3;
-      cube.position.y = value;
+      cube.scale.y = value * 3 + 0.1;
+      cube.position.y = (value * 3) / 2;
       cube.material.color.setHSL(i / this.cubes.length, 0.8, 0.5);
-      cube.material.emissive.setHSL(i / this.cubes.length, 1, 0.2);
+      cube.material.emissive.setHSL(i / this.cubes.length, 1, 0.2 * value);
       this.scene.add(cube);
     });
 
@@ -278,6 +313,15 @@ class AudioVisualizer {
   }
 
   renderSphere() {
+    this.scene.clear();
+    
+    // Add lights back
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(5, 5, 5);
+    this.scene.add(ambientLight);
+    this.scene.add(directionalLight);
+
     this.scene.add(this.sphere);
     
     const vertices = this.sphere.geometry.attributes.position;
@@ -285,9 +329,10 @@ class AudioVisualizer {
     
     for (let i = 0; i < vertices.count; i++) {
       const offset = (this.dataArray[i % this.dataArray.length] / 255) * 0.5;
-      vertices.array[i * 3] *= 1 + offset;
-      vertices.array[i * 3 + 1] *= 1 + offset;
-      vertices.array[i * 3 + 2] *= 1 + offset;
+      const originalVert = this.sphere.geometry.attributes.position.array;
+      vertices.array[i * 3] = originalVert[i * 3] * (1 + offset);
+      vertices.array[i * 3 + 1] = originalVert[i * 3 + 1] * (1 + offset);
+      vertices.array[i * 3 + 2] = originalVert[i * 3 + 2] * (1 + offset);
     }
     
     vertices.needsUpdate = true;
@@ -298,6 +343,15 @@ class AudioVisualizer {
   }
 
   renderTerrain() {
+    this.scene.clear();
+    
+    // Add lights back
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(5, 5, 5);
+    this.scene.add(ambientLight);
+    this.scene.add(directionalLight);
+
     this.scene.add(this.terrain);
     
     const vertices = this.terrain.geometry.attributes.position;
@@ -341,9 +395,11 @@ class AudioVisualizer {
     this.canvas2d.height = window.innerHeight;
 
     // Update 3D renderer
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.camera.aspect = window.innerWidth / window.innerHeight;
-    this.camera.updateProjectionMatrix();
+    if (this.renderer) {
+      this.renderer.setSize(window.innerWidth, window.innerHeight);
+      this.camera.aspect = window.innerWidth / window.innerHeight;
+      this.camera.updateProjectionMatrix();
+    }
   }
 
   async toggleFullscreen() {
@@ -360,4 +416,6 @@ class AudioVisualizer {
 }
 
 // Initialize the visualizer
-new AudioVisualizer();
+document.addEventListener('DOMContentLoaded', () => {
+  new AudioVisualizer();
+});
